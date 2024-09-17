@@ -78,7 +78,7 @@ mission_items = [
         0, 0, 0, 0,  # param1, param2, param3, param4
         int(current_latitude * 1e7),  # latitude (scaled to int32)
         int(current_longitude * 1e7),  # longitude (scaled to int32)
-        587.13,  # altitude
+        current_altitude,  # altitude
         mavutil.mavlink.MAV_MISSION_TYPE_MISSION,  # mission_type
     ),
     mavutil.mavlink.MAVLink_mission_item_int_message(
