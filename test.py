@@ -21,6 +21,32 @@ def wait_for_mission_request(master):
         if message is not None:
             return message.seq
 
+# Function to get the current location of the drone
+def get_current_location(master):
+    # Request GLOBAL_POSITION_INT message
+    while True:
+        message = master.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
+        if message:
+            message = message.to_dict()
+
+            # Extract latitude, longitude, and altitude
+            latitude = message['lat'] / 1e7  # Scale down to degrees
+            longitude = message['lon'] / 1e7  # Scale down to degrees
+            altitude = message['alt'] / 1000.0  # Altitude in meters (from millimeters)
+
+            print(f"Current Location - Latitude: {latitude}, Longitude: {longitude}, Altitude: {altitude} m")
+            return latitude, longitude, altitude
+
+# Function to request data streams from the drone
+def request_data_stream(master, stream_id, rate=1):
+    master.mav.request_data_stream_send(
+        master.target_system,
+        master.target_component,
+        stream_id,  # MAV_DATA_STREAM
+        rate,  # Rate in Hz (times per second)
+        1  # Start streaming
+    )
+
 # Connect to the drone
 connection_string = 'tcp:127.0.0.1:5763'  # Replace with the appropriate connection string
 master = mavutil.mavlink_connection(connection_string)
@@ -29,9 +55,15 @@ master = mavutil.mavlink_connection(connection_string)
 master.wait_heartbeat()
 print("Heartbeat received")
 
+# Request the position data stream at 1Hz (1 message per second)
+request_data_stream(master, mavutil.mavlink.MAV_DATA_STREAM_POSITION, rate=1)
+print("Requested position data stream...")
+
 # Clear any existing mission
 master.mav.mission_clear_all_send(master.target_system, master.target_component)
 print("Cleared existing mission")
+
+current_latitude, current_longitude, current_altitude = get_current_location(master)
 
 # Send mission items (example 5 waypoints)
 mission_items = [
@@ -44,8 +76,8 @@ mission_items = [
         0,  # current (not the current mission item)
         1,  # autocontinue
         0, 0, 0, 0,  # param1, param2, param3, param4
-        int(-35.3352 * 1e7),  # latitude (scaled to int32)
-        int(149.1652416 * 1e7),  # longitude (scaled to int32)
+        int(current_latitude * 1e7),  # latitude (scaled to int32)
+        int(current_longitude * 1e7),  # longitude (scaled to int32)
         587.13,  # altitude
         mavutil.mavlink.MAV_MISSION_TYPE_MISSION,  # mission_type
     ),
