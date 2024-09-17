@@ -1,6 +1,9 @@
 from pymavlink import mavutil
 import time
 
+drop_lat = -35.3630029
+drop_lon = 149.167257
+
 # Function to wait for acknowledgment of a command
 def wait_for_ack(master, command):
     while True:
@@ -47,6 +50,18 @@ def request_data_stream(master, stream_id, rate=1):
         1  # Start streaming
     )
 
+def create_mission_item(seq, command, params, lat=0, lon=0, alt=0):
+    return mavutil.mavlink.MAVLink_mission_item_int_message(
+        master.target_system,
+        master.target_component,
+        seq,
+        mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+        command,
+        0, 1, *params,
+        int(lat * 1e7), int(lon * 1e7), alt,
+        mavutil.mavlink.MAV_MISSION_TYPE_MISSION
+    )
+
 # Connect to the drone
 connection_string = 'tcp:127.0.0.1:5763'  # Replace with the appropriate connection string
 master = mavutil.mavlink_connection(connection_string)
@@ -63,81 +78,16 @@ print("Requested position data stream...")
 master.mav.mission_clear_all_send(master.target_system, master.target_component)
 print("Cleared existing mission")
 
-current_latitude, current_longitude, current_altitude = get_current_location(master)
+current_lat, current_lon, current_alt = get_current_location(master)
 
 # Send mission items (example 5 waypoints)
 mission_items = [
-    mavutil.mavlink.MAVLink_mission_item_int_message(
-        master.target_system,  # target_system (autopilot system id)
-        master.target_component,  # target_component (autopilot component id)
-        0,  # sequence number
-        mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,  # frame
-        mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,  # command type
-        0,  # current (not the current mission item)
-        1,  # autocontinue
-        0, 0, 0, 0,  # param1, param2, param3, param4
-        int(current_latitude * 1e7),  # latitude (scaled to int32)
-        int(current_longitude * 1e7),  # longitude (scaled to int32)
-        current_altitude,  # altitude
-        mavutil.mavlink.MAV_MISSION_TYPE_MISSION,  # mission_type
-    ),
-    mavutil.mavlink.MAVLink_mission_item_int_message(
-        master.target_system,  # target_system (autopilot system id)
-        master.target_component,  # target_component (autopilot component id)
-        1,  # sequence number
-        mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,  # frame
-        mavutil.mavlink.MAV_CMD_NAV_TAKEOFF,  # command type
-        0,  # current (not the current mission item)
-        1,  # autocontinue
-        15, 0, 0, 0,  # param1 (pitch), param2, param3, param4
-        0,  # latitude (scaled to int32, set to zero for takeoff)
-        0,  # longitude (scaled to int32, set to zero for takeoff)
-        10,  # altitude
-        mavutil.mavlink.MAV_MISSION_TYPE_MISSION,  # mission_type
-    ),
-    mavutil.mavlink.MAVLink_mission_item_int_message(
-        master.target_system,  # target_system (autopilot system id)
-        master.target_component,  # target_component (autopilot component id)
-        2,  # sequence number
-        mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,  # frame
-        mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,  # command type
-        0,  # current (not the current mission item)
-        1,  # autocontinue
-        0, 0, 0, 0,  # param1, param2, param3, param4
-        int(-35.3619967 * 1e7),  # latitude (scaled by 1e7 to int32)
-        int(149.166027900 * 1e7),  # longitude (scaled by 1e7 to int32)
-        10,  # altitude
-        mavutil.mavlink.MAV_MISSION_TYPE_MISSION,  # mission_type
-    ),
-    mavutil.mavlink.MAVLink_mission_item_int_message(
-        master.target_system,  # target_system (autopilot system id)
-        master.target_component,  # target_component (autopilot component id)
-        3,  # sequence number
-        mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,  # frame
-        mavutil.mavlink.MAV_CMD_NAV_LOITER_TIME,  # command type
-        0,  # current (not the current mission item)
-        1,  # autocontinue
-        10, 0, 0, 0,  # param1 (loiter time), param2, param3, param4
-        int(-35.3619967 * 1e7),  # latitude (scaled by 1e7 to int32)
-        int(149.166027900 * 1e7),  # longitude (scaled by 1e7 to int32)
-        1,  # altitude
-        mavutil.mavlink.MAV_MISSION_TYPE_MISSION,  # mission_type
-    ),
-    mavutil.mavlink.MAVLink_mission_item_int_message(
-        master.target_system,  # target_system (autopilot system id)
-        master.target_component,  # target_component (autopilot component id)
-        4,  # sequence number
-        mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,  # frame
-        mavutil.mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH,  # command type
-        0,  # current (not the current mission item)
-        1,  # autocontinue
-        0, 0, 0, 0,  # param1, param2, param3, param4
-        0,  # latitude (for RTL, set to zero)
-        0,  # longitude (for RTL, set to zero)
-        0,  # altitude (for RTL, set to zero)
-        mavutil.mavlink.MAV_MISSION_TYPE_MISSION,  # mission_type
-    ),
-]
+            create_mission_item(0, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, (0, 0, 0, 0), current_lat, current_lon, current_alt),
+            create_mission_item(1, mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, (15, 0, 0, 0), alt=10),
+            create_mission_item(2, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, (0, 0, 0, 0), drop_lat, drop_lon, 10),
+            create_mission_item(3, mavutil.mavlink.MAV_CMD_NAV_LOITER_TIME, (10, 0, 0, 0), drop_lat, drop_lon, 1),
+            create_mission_item(4, mavutil.mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH, (0, 0, 0, 0))
+        ]
 
 # Send mission count
 master.mav.mission_count_send(master.target_system, master.target_component, len(mission_items), mavutil.mavlink.MAV_MISSION_TYPE_MISSION)
