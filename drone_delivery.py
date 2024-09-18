@@ -3,8 +3,13 @@ import threading
 from pymavlink import mavutil
 import time
 import math
+import logging
 
 app = Flask(__name__)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # Global variables
 connection_string = 'tcp:127.0.0.1:5763'  # Replace with the appropriate connection string
@@ -18,18 +23,18 @@ def initialize_connection():
         if master is not None:
             try:
                 master.close()
-            except:
-                pass
+            except Exception as e:
+                logger.error(f"Error closing existing connection: {str(e)}")
         master = mavutil.mavlink_connection(connection_string)
     
     try:
         master.wait_heartbeat(timeout=10)
-        print("Heartbeat received")
+        logger.info("Heartbeat received")
         request_data_stream(master, mavutil.mavlink.MAV_DATA_STREAM_POSITION, rate=1)
-        print("Requested position data stream...")
+        logger.info("Requested position data stream")
         connection_established.set()
     except Exception as e:
-        print(f"Failed to initialize connection: {str(e)}")
+        logger.error(f"Failed to initialize connection: {str(e)}")
         connection_established.clear()
 
 def get_master():
@@ -38,7 +43,6 @@ def get_master():
         initialize_connection()
     return master
 
-# Function to calculate distance between two coordinates
 def calculate_distance(lat1, lon1, lat2, lon2):
     R = 6371000  # Earth's radius in meters
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
@@ -47,22 +51,20 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     a = math.sin(delta_phi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda/2)**2
     return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1-a))
 
-# Function to wait for acknowledgment of a command
 def wait_for_ack(master, command, timeout=10):
     start_time = time.time()
     while time.time() - start_time < timeout:
         message = master.recv_match(type='COMMAND_ACK', blocking=True, timeout=1)
         if message and message.command == command:
             if message.result == mavutil.mavlink.MAV_RESULT_ACCEPTED:
-                print(f"Command {command} acknowledged")
+                logger.info(f"Command {command} acknowledged")
                 return True
             else:
-                print(f"Command {command} failed with result {message.result}")
+                logger.warning(f"Command {command} failed with result {message.result}")
                 return False
-    print(f"Timeout waiting for acknowledgment of command {command}")
+    logger.error(f"Timeout waiting for acknowledgment of command {command}")
     return False
 
-# Function to get the current location of the drone
 def get_current_location(master, timeout=10):
     start_time = time.time()
     while time.time() - start_time < timeout:
@@ -71,11 +73,10 @@ def get_current_location(master, timeout=10):
             lat = message.lat / 1e7
             lon = message.lon / 1e7
             alt = message.alt / 1000.0
-            print(f"Current Location - Latitude: {lat}, Longitude: {lon}, Altitude: {alt} m")
+            logger.info(f"Current Location - Latitude: {lat}, Longitude: {lon}, Altitude: {alt} m")
             return lat, lon, alt
     raise TimeoutError("Failed to get current location")
 
-# Function to request data streams from the drone
 def request_data_stream(master, stream_id, rate=1):
     master.mav.request_data_stream_send(
         master.target_system, master.target_component,
@@ -91,7 +92,6 @@ def create_mission_item(seq, command, params, lat=0, lon=0, alt=0):
         mavutil.mavlink.MAV_MISSION_TYPE_MISSION
     )
 
-# Function to wait for mission request
 def wait_for_mission_request(master, timeout=10):
     start_time = time.time()
     while time.time() - start_time < timeout:
@@ -100,26 +100,22 @@ def wait_for_mission_request(master, timeout=10):
             return message.seq
     raise TimeoutError("Timeout waiting for mission request")
 
-# Function to execute the MAVLink mission script
 def execute_mission(drop_lat, drop_lon):
     try:
         master = get_master()
         if not connection_established.is_set():
             raise ConnectionError("No connection to the drone")
 
-        # Clear any existing mission
         master.mav.mission_clear_all_send(master.target_system, master.target_component)
-        print("Cleared existing mission")
+        logger.info("Cleared existing mission")
         time.sleep(1)
 
         current_lat, current_lon, current_alt = get_current_location(master)
 
-        # Check distance to drop coordinates
         distance = calculate_distance(current_lat, current_lon, drop_lat, drop_lon)
         if distance > 150:
             raise ValueError(f"Drop coordinates are {distance:.2f}m away, which exceeds the 150m limit.")
 
-        # Create mission items
         mission_items = [
             create_mission_item(0, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, (0, 0, 0, 0), current_lat, current_lon, current_alt),
             create_mission_item(1, mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, (15, 0, 0, 0), alt=10),
@@ -128,35 +124,30 @@ def execute_mission(drop_lat, drop_lon):
             create_mission_item(4, mavutil.mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH, (0, 0, 0, 0))
         ]
 
-        # Upload mission
         master.mav.mission_count_send(master.target_system, master.target_component, len(mission_items), mavutil.mavlink.MAV_MISSION_TYPE_MISSION)
         for i, item in enumerate(mission_items):
             seq = wait_for_mission_request(master)
             if seq != i:
                 raise ValueError(f"Unexpected mission request sequence. Expected {i}, got {seq}")
             master.mav.send(item)
-            print(f"Sent mission item {i}")
+            logger.info(f"Sent mission item {i}")
 
-        # Wait for mission acknowledgment
         if not master.recv_match(type='MISSION_ACK', blocking=True, timeout=10):
             raise TimeoutError("Did not receive MISSION_ACK")
-        print("Mission uploaded successfully")
+        logger.info("Mission uploaded successfully")
 
-        # Switch to GUIDED mode
-        print("Switching to GUIDED mode")
+        logger.info("Switching to GUIDED mode")
         mode_id = master.mode_mapping()['GUIDED']
         master.set_mode(mode_id)
         if not wait_for_ack(master, mavutil.mavlink.MAV_CMD_DO_SET_MODE):
             raise RuntimeError("Failed to receive acknowledgment for mode switch")
 
-        # Arm the drone
-        print("Arming the drone")
+        logger.info("Arming the drone")
         master.arducopter_arm()
         if not wait_for_ack(master, mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM):
             raise RuntimeError("Failed to arm the drone")
 
-        # Start the mission
-        print("Starting the mission")
+        logger.info("Starting the mission")
         master.mav.command_long_send(
             master.target_system, master.target_component,
             mavutil.mavlink.MAV_CMD_MISSION_START,
@@ -165,36 +156,36 @@ def execute_mission(drop_lat, drop_lon):
         if not wait_for_ack(master, mavutil.mavlink.MAV_CMD_MISSION_START):
             raise RuntimeError("Failed to start the mission")
 
-        print("Mission started successfully")
+        logger.info("Mission started successfully")
         return True, "Mission started successfully"
 
     except Exception as e:
-        print(f"Error during mission execution: {str(e)}")
+        logger.error(f"Error during mission execution: {str(e)}")
         return False, str(e)
 
 @app.route('/drop_coordinates', methods=['POST'])
 def receive_coordinates():
     if not connection_established.is_set():
-        return jsonify({"error": "No connection to the drone. Try again later."}), 503
+        return jsonify({"error": "No connection to the drone. Please retry the connection and try again."}), 503
 
     data = request.json
     if not data:
-        return jsonify({"error": "No data provided"}), 400
+        return jsonify({"error": "No data provided. Please include 'latitude' and 'longitude' in the request body."}), 400
 
     try:
         drop_lat = float(data.get('latitude'))
         drop_lon = float(data.get('longitude'))
     except (TypeError, ValueError):
-        return jsonify({"error": "Invalid latitude or longitude format"}), 400
+        return jsonify({"error": "Invalid latitude or longitude format. Please provide valid floating-point numbers."}), 400
 
     if not (-90 <= drop_lat <= 90) or not (-180 <= drop_lon <= 180):
-        return jsonify({"error": "Latitude or longitude out of valid range"}), 400
+        return jsonify({"error": "Latitude or longitude out of valid range. Latitude should be between -90 and 90, longitude between -180 and 180."}), 400
 
     success, message = execute_mission(drop_lat, drop_lon)
     if success:
         return jsonify({"status": "Mission started", "latitude": drop_lat, "longitude": drop_lon}), 200
     else:
-        return jsonify({"error": message}), 500
+        return jsonify({"error": f"Mission execution failed: {message}"}), 500
 
 @app.route('/connection_status', methods=['GET'])
 def connection_status():
@@ -206,20 +197,21 @@ def retry_connection():
     if connection_established.is_set():
         return jsonify({"status": "Connection established successfully"}), 200
     else:
-        return jsonify({"error": "Failed to establish connection"}), 500
+        return jsonify({"error": "Failed to establish connection. Please check the drone and connection settings."}), 500
 
 @app.errorhandler(404)
 def not_found(error):
-    return jsonify({"error": "Not found"}), 404
+    return jsonify({"error": "Endpoint not found. Please check the URL and try again."}), 404
 
 @app.errorhandler(405)
 def method_not_allowed(error):
-    return jsonify({"error": "Method not allowed"}), 405
+    return jsonify({"error": "Method not allowed. Please check the allowed HTTP methods for this endpoint."}), 405
 
 @app.errorhandler(500)
 def internal_server_error(error):
-    return jsonify({"error": "Internal server error"}), 500
+    logger.error(f"Internal server error: {str(error)}")
+    return jsonify({"error": "Internal server error occurred. Please try again later or contact support."}), 500
 
 if __name__ == '__main__':
     initialize_connection()
-    app.run(debug=False, port=5000)  # Set debug to False to prevent automatic reloading
+    app.run(debug=False, port=5000)
