@@ -3,3 +3,8 @@ venv/
 
 # Ignore html files
 html/
+
+# Ignore Mavlink files
+mav.tlog
+mav.tlog.raw
+mav.parm
