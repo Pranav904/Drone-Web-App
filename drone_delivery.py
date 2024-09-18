@@ -4,8 +4,10 @@ from pymavlink import mavutil
 import time
 import math
 import logging
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -113,8 +115,8 @@ def execute_mission(drop_lat, drop_lon):
         current_lat, current_lon, current_alt = get_current_location(master)
 
         distance = calculate_distance(current_lat, current_lon, drop_lat, drop_lon)
-        if distance > 150:
-            raise ValueError(f"Drop coordinates are {distance:.2f}m away, which exceeds the 150m limit.")
+        if distance > 1000:
+            raise ValueError(f"Drop coordinates are {distance:.2f}m away, which exceeds the 1000m limit.")
 
         mission_items = [
             create_mission_item(0, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, (0, 0, 0, 0), current_lat, current_lon, current_alt),

@@ -1,0 +1,42 @@
+.mission-form {
+    background-color: #f4f4f4;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .mission-form form {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mission-form .form-field {
+    display: flex; /* or block if you want them on separate lines */
+    flex-direction: column; /* Stack children vertically */
+    margin-bottom: 15px; /* Add some spacing between fields */
+  }
+  
+  .mission-form input {
+    margin: 8px 0;
+    padding: 8px;
+    font-size: 16px;
+  }
+  
+  .mission-form button {
+    padding: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  
+  .mission-form button:disabled {
+    background-color: #ccc;
+  }
+
+  .mission-form label{
+    font-size: 16px;
+    color: black;
+  }

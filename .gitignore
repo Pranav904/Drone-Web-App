@@ -8,3 +8,6 @@ html/
 mav.tlog
 mav.tlog.raw
 mav.parm
+
+# dependencies
+/drone-mission-frontend/node_modules
