@@ -11,3 +11,6 @@ mav.parm
 
 # dependencies
 /drone-mission-frontend/node_modules
+
+# Ignore environment file
+/drone-mission-frontend/.env
