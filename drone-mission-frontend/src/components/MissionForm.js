@@ -1,20 +1,12 @@
-import React, { useState, useRef, useCallback } from "react";
+// MissionForm.js
+import React, { useState, useCallback } from "react";
 import axios from "axios";
-import { motion, AnimatePresence } from "framer-motion";
-import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
-import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
-import RingsLoaderComponent from "./RingsLoaderComponent";
+import {AnimatePresence } from "framer-motion";
+import MissionFormInputs from "./MissionFormInputs";
+import MissionHistory from "./MissionHistory";
+import StatusAnimation from "./StatusAnimation";
+import MissionMap from "./MissionMap";
 import "./MissionForm.css";
-
-const mapContainerStyle = {
-  width: "98%",
-  height: "100%",
-};
-
-const center = {
-  lat: 12.841,
-  lng: 80.154,
-};
 
 const MissionForm = () => {
   const [latitude, setLatitude] = useState("");
@@ -25,7 +17,6 @@ const MissionForm = () => {
   const [missionHistory, setMissionHistory] = useState([]);
   const [showMissionHistory, setShowMissionHistory] = useState(false);
   const [markerPosition, setMarkerPosition] = useState(null);
-  const formRef = useRef(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -88,127 +79,27 @@ const MissionForm = () => {
         <div className="form-container">
           <AnimatePresence>
             {showForm && (
-              <motion.form
-                ref={formRef}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.3 }}
-                onSubmit={handleSubmit}
-                className="mission-form"
-              >
-                <div className="form-field">
-                  <motion.label
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 0.1 }}
-                  >
-                    Latitude:
-                  </motion.label>
-                  <motion.input
-                    className="latitude input"
-                    type="number"
-                    step="any"
-                    value={latitude}
-                    onChange={(e) => setLatitude(e.target.value)}
-                    required
-                    initial={{ scale: 0.8 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.2 }}
-                  />
-                </div>
-
-                <div className="form-field">
-                  <motion.label
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                  >
-                    Longitude:
-                  </motion.label>
-                  <motion.input
-                    className="longitude input"
-                    type="number"
-                    step="any"
-                    value={longitude}
-                    onChange={(e) => setLongitude(e.target.value)}
-                    required
-                    initial={{ scale: 0.8 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.4 }}
-                  />
-                </div>
-
-                <motion.button
-                  type="submit"
-                  className="start-mission-btn"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Start Mission
-                </motion.button>
-              </motion.form>
+              <MissionFormInputs
+                latitude={latitude}
+                longitude={longitude}
+                setLatitude={setLatitude}
+                setLongitude={setLongitude}
+                handleSubmit={handleSubmit}
+              />
             )}
           </AnimatePresence>
 
           {showMissionHistory && (
-            <div className="mission-history">
-              <h3>Mission History:</h3>
-              <ul>
-                {missionHistory.map((mission, index) => (
-                  <li key={index}>{mission}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {status === "loading" && <RingsLoaderComponent />}
-          {status === "success" && (
-            <div className="animation">
-              <motion.div
-                className="success-animation"
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0 }}
-                transition={{ duration: 0.5, exit: { duration: 0.5, delay: 2 }  }}
-              >
-                <CheckCircleIcon className="text-green-500" />
-                <p>Success!</p>
-                <p>{message}</p>
-              </motion.div>
-            </div>
+            <MissionHistory missionHistory={missionHistory} />
           )}
 
-          {status === "error" && (
-            <div className="animation">
-              <motion.div
-                className="error-animation"
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0 }}
-                transition={{ duration: 0.5, exit: { duration: 0.5, delay: 2 } }}
-              >
-                <XCircleIcon className="text-red-500" />
-                <p>Error!</p>
-                <p>{message}</p>
-              </motion.div>
-            </div>
-          )}
+          <StatusAnimation status={status} message={message} />
         </div>
 
-        <div className="map-container">
-          <LoadScript
-            googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
-          >
-            <GoogleMap
-              mapContainerStyle={mapContainerStyle}
-              center={center}
-              zoom={18}
-              onClick={onMapClick}
-            >
-              {markerPosition && <Marker position={markerPosition} />}
-            </GoogleMap>
-          </LoadScript>
-        </div>
+        <MissionMap
+          markerPosition={markerPosition}
+          onMapClick={onMapClick}
+        />
       </div>
     </div>
   );
