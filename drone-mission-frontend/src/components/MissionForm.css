@@ -1,42 +1,85 @@
+.mission-control-container {
+  background-color: #1e1e1e;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  color: white;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.content-wrapper {
+  display: flex;
+  height: calc(100vh - 100px);
+}
+
+.form-container {
+  width: 50%;
+  padding-right: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
 .mission-form {
-    background-color: #f4f4f4;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
-  
-  .mission-form form {
-    display: flex;
-    flex-direction: column;
-  }
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  margin-left: 20px;
+}
 
-  .mission-form .form-field {
-    display: flex; /* or block if you want them on separate lines */
-    flex-direction: column; /* Stack children vertically */
-    margin-bottom: 15px; /* Add some spacing between fields */
-  }
-  
-  .mission-form input {
-    margin: 8px 0;
-    padding: 8px;
-    font-size: 16px;
-  }
-  
-  .mission-form button {
-    padding: 10px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-top: 10px;
-  }
-  
-  .mission-form button:disabled {
-    background-color: #ccc;
-  }
+.form-field {
+  margin-bottom: 15px;
+}
 
-  .mission-form label{
-    font-size: 16px;
-    color: black;
-  }
+.form-field label {
+  display: block;
+  margin-bottom: 5px;
+  color: black;
+}
+
+.form-field input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.start-mission-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.mission-history {
+  color: white;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+.mission-history ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.mission-history li {
+  margin-bottom: 5px;
+}
+
+.map-container {
+  width: 50%;
+  padding-left: 10px;
+}
+
+.animation {
+  height: 70vh;
+  width: 70vh;
+  margin: 0 auto;
+}
