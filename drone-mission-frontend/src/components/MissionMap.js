@@ -5,11 +5,19 @@ import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
 const mapContainerStyle = {
   width: "98%",
   height: "100%",
+  borderRadius: "10px",
 };
 
 const center = {
   lat: 12.841,
   lng: 80.154,
+};
+
+const mapOptions = {
+  mapTypeId: 'satellite',
+  mapTypeControl: true,
+  zoomControl: true,
+  streetViewControl: false,
 };
 
 const MissionMap = ({ markerPosition, onMapClick }) => {
@@ -23,6 +31,7 @@ const MissionMap = ({ markerPosition, onMapClick }) => {
           center={center}
           zoom={18}
           onClick={onMapClick}
+          options={mapOptions}
         >
           {markerPosition && <Marker position={markerPosition} />}
         </GoogleMap>
