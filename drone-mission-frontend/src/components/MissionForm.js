@@ -106,6 +106,7 @@ const MissionForm = () => {
                     Latitude:
                   </motion.label>
                   <motion.input
+                    className="latitude input"
                     type="number"
                     step="any"
                     value={latitude}
@@ -126,6 +127,7 @@ const MissionForm = () => {
                     Longitude:
                   </motion.label>
                   <motion.input
+                    className="longitude input"
                     type="number"
                     step="any"
                     value={longitude}
