@@ -3,10 +3,11 @@ import React, { useState, useCallback } from "react";
 import axios from "axios";
 import {AnimatePresence } from "framer-motion";
 import MissionFormInputs from "./MissionFormInputs";
-import MissionHistory from "./MissionHistory";
+// import MissionHistory from "./MissionHistory";
 import StatusAnimation from "./StatusAnimation";
 import MissionMap from "./MissionMap";
 import "./MissionForm.css";
+import DroneDiscovery from "./DroneDiscovery";
 
 const MissionForm = () => {
   const [latitude, setLatitude] = useState("");
@@ -15,13 +16,13 @@ const MissionForm = () => {
   const [message, setMessage] = useState("");
   const [showForm, setShowForm] = useState(true);
   const [missionHistory, setMissionHistory] = useState([]);
-  const [showMissionHistory, setShowMissionHistory] = useState(false);
+  // const [showMissionHistory, setShowMissionHistory] = useState(false);
   const [markerPosition, setMarkerPosition] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus("loading");
-    setShowMissionHistory(false);
+    // setShowMissionHistory(false);
 
     const payload = {
       latitude: parseFloat(latitude),
@@ -49,7 +50,7 @@ const MissionForm = () => {
           setMissionHistory([...missionHistory, message]);
           setStatus("");
           setShowForm(true);
-          setShowMissionHistory(true);
+          // setShowMissionHistory(true);
         }, 2000);
       }
     } catch (error) {
@@ -59,7 +60,7 @@ const MissionForm = () => {
       setTimeout(() => {
         setStatus("");
         setShowForm(true);
-        setShowMissionHistory(true);
+        // setShowMissionHistory(true);
       }, 2000);
     }
   };
@@ -89,9 +90,10 @@ const MissionForm = () => {
             )}
           </AnimatePresence>
 
-          {showMissionHistory && (
+          {/* {showMissionHistory && (
             <MissionHistory missionHistory={missionHistory} />
-          )}
+          )} */}
+          <DroneDiscovery />
 
           <StatusAnimation status={status} message={message} />
         </div>
