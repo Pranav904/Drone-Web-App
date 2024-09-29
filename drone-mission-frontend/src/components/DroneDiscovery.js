@@ -1,15 +1,16 @@
+// DroneDiscovery.js
 import React, { useState } from "react";
 import axios from "axios";
-import "./DroneDiscovery.css";
+import "./DroneDiscovery.css"; // Importing the new CSS
 
-// Simulated network IP retrieval - placeholder for actual implementation
 const getNetworkIPs = async () => {
+  // This is a placeholder. In a real implementation, you might get this from a backend API
   return ["127.0.0.1:5000", "127.0.0.1:5001"];
 };
 
 const DroneDiscovery = ({ onDroneSelect }) => {
   const [drones, setDrones] = useState([]);
-  const [selectedDrone, setSelectedDrone] = useState(null); // Only one drone can be selected
+  const [selectedDrone, setSelectedDrone] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState(null);
 
@@ -45,8 +46,14 @@ const DroneDiscovery = ({ onDroneSelect }) => {
   };
 
   const handleDroneSelection = (drone) => {
-    setSelectedDrone(drone.id);
-    onDroneSelect(drone); // Pass the selected drone to the parent immediately
+    if (selectedDrone && selectedDrone.id === drone.id) {
+      // If the same drone is clicked, deselect it
+      setSelectedDrone(null);
+    } else {
+      // Otherwise, select the clicked drone
+      setSelectedDrone(drone);
+    }
+    onDroneSelect(drone); // Send the selected drone details to the parent component
   };
 
   return (
@@ -59,27 +66,26 @@ const DroneDiscovery = ({ onDroneSelect }) => {
         {isScanning ? "Scanning..." : "Scan for Drones"}
       </button>
       {error && <p className="text-red-500 mt-2">{error}</p>}
-      <ul className="drone-list">
+
+      <ul className="drone-list mt-4">
         {drones.map((drone) => (
           <li
             key={drone.id}
             className={`drone-item ${
-              selectedDrone === drone.id ? "selected" : ""
+              selectedDrone && selectedDrone.id === drone.id ? "selected" : ""
             }`}
+            onClick={() => handleDroneSelection(drone)}
           >
             <label className="drone-label">
               <input
                 type="radio"
                 name="droneSelection"
                 value={drone.id}
-                checked={selectedDrone === drone.id}
-                onChange={() =>
-                  handleDroneSelection({ id: drone.id, ip: drone.ip })
-                }
+                checked={selectedDrone && selectedDrone.id === drone.id}
+                onChange={() => handleDroneSelection(drone)}
               />
               <span className="drone-info">
-                <strong>Drone ID:</strong> {drone.id} - <strong>IP:</strong>{" "}
-                {drone.ip}
+                Drone ID: {drone.id} - IP: {drone.ip}
               </span>
             </label>
           </li>
