@@ -2,7 +2,13 @@
 import React from "react";
 import { motion } from "framer-motion";
 
-const MissionFormInputs = ({ latitude, longitude, setLatitude, setLongitude, handleSubmit }) => {
+const MissionFormInputs = ({
+  latitude,
+  longitude,
+  setLatitude,
+  setLongitude,
+  handleSubmit,
+}) => {
   return (
     <motion.form
       initial={{ opacity: 0, scale: 0.9 }}

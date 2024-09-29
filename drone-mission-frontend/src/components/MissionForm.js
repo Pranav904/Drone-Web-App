@@ -94,7 +94,6 @@ const MissionForm = () => {
                 handleSubmit={handleSubmit}
               />
             )}
-
           </AnimatePresence>
 
           {showDroneList && (
