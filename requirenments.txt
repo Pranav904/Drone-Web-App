@@ -1,4 +1,0 @@
-cherrypy
-dronekit
-jinja2
-simplejson
