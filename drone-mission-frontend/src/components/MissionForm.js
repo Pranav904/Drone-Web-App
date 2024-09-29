@@ -3,7 +3,6 @@ import React, { useState, useCallback } from "react";
 import axios from "axios";
 import { AnimatePresence } from "framer-motion";
 import MissionFormInputs from "./MissionFormInputs";
-// import MissionHistory from "./MissionHistory";
 import StatusAnimation from "./StatusAnimation";
 import MissionMap from "./MissionMap";
 import "./MissionForm.css";
@@ -95,13 +94,9 @@ const MissionForm = () => {
                 handleSubmit={handleSubmit}
               />
             )}
+
           </AnimatePresence>
 
-          {/* {showMissionHistory && (
-            <MissionHistory missionHistory={missionHistory} />
-          )} */}
-
-          {/* Pass handleDroneSelect to capture the selected drone */}
           {showDroneList && (
             <DroneDiscovery onDroneSelect={handleDroneSelect} />
           )}
