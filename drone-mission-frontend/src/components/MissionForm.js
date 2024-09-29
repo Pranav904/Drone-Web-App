@@ -1,7 +1,7 @@
 // MissionForm.js
 import React, { useState, useCallback } from "react";
 import axios from "axios";
-import {AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import MissionFormInputs from "./MissionFormInputs";
 // import MissionHistory from "./MissionHistory";
 import StatusAnimation from "./StatusAnimation";
@@ -15,23 +15,31 @@ const MissionForm = () => {
   const [status, setStatus] = useState("");
   const [message, setMessage] = useState("");
   const [showForm, setShowForm] = useState(true);
-  const [missionHistory, setMissionHistory] = useState([]);
-  // const [showMissionHistory, setShowMissionHistory] = useState(false);
+  const [showDroneList, setDroneList] = useState(true);
   const [markerPosition, setMarkerPosition] = useState(null);
+  const [selectedDrone, setSelectedDrone] = useState({}); // Add state to track selected drone
+
+  // Capture selected drone from DroneDiscovery
+  const handleDroneSelect = (drone) => {
+    setSelectedDrone(drone);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus("loading");
-    // setShowMissionHistory(false);
+    setDroneList(false);
 
     const payload = {
       latitude: parseFloat(latitude),
       longitude: parseFloat(longitude),
+      drone_id: selectedDrone.id, // Include the selected drone in the payload
     };
+
+    let destination = selectedDrone.ip;
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/drop_coordinates",
+        `http://${destination}/drop_coordinates`,
         payload,
         {
           headers: {
@@ -43,14 +51,13 @@ const MissionForm = () => {
       if (response.status === 200) {
         setStatus("success");
         setMessage(
-          `Mission started successfully at (${latitude}, ${longitude})`
+          `Mission started successfully with drone (${selectedDrone.id}) at (${latitude}, ${longitude})`
         );
         setShowForm(false);
         setTimeout(() => {
-          setMissionHistory([...missionHistory, message]);
           setStatus("");
           setShowForm(true);
-          // setShowMissionHistory(true);
+          setDroneList(true);
         }, 2000);
       }
     } catch (error) {
@@ -60,7 +67,7 @@ const MissionForm = () => {
       setTimeout(() => {
         setStatus("");
         setShowForm(true);
-        // setShowMissionHistory(true);
+        setDroneList(true);
       }, 2000);
     }
   };
@@ -93,15 +100,16 @@ const MissionForm = () => {
           {/* {showMissionHistory && (
             <MissionHistory missionHistory={missionHistory} />
           )} */}
-          <DroneDiscovery />
+
+          {/* Pass handleDroneSelect to capture the selected drone */}
+          {showDroneList && (
+            <DroneDiscovery onDroneSelect={handleDroneSelect} />
+          )}
 
           <StatusAnimation status={status} message={message} />
         </div>
 
-        <MissionMap
-          markerPosition={markerPosition}
-          onMapClick={onMapClick}
-        />
+        <MissionMap markerPosition={markerPosition} onMapClick={onMapClick} />
       </div>
     </div>
   );
