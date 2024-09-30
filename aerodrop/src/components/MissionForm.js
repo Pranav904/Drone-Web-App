@@ -79,18 +79,20 @@ const MissionForm = () => {
 
   return (
     <div className="mission-control-container">
-      <h1 className="text-3xl md:text-5xl font-bold dark:text-white text-center">Drone Mission Control</h1>
+      <h1 className="relative flex-col md:flex-row z-10 text-3xl md:text-5xl md:leading-tight max-w-5xl mx-auto text-center tracking-tight font-medium bg-clip-text text-transparent bg-gradient-to-b from-neutral-800 via-white to-white flex items-center gap-2 md:gap-8 m-4">
+        Drone Mission Control
+      </h1>
       <div className="content-wrapper">
         <div className="form-container">
-            {showForm && (
-              <MissionFormInputs
-                latitude={latitude}
-                longitude={longitude}
-                setLatitude={setLatitude}
-                setLongitude={setLongitude}
-                handleSubmit={handleSubmit}
-              />
-            )}
+          {showForm && (
+            <MissionFormInputs
+              latitude={latitude}
+              longitude={longitude}
+              setLatitude={setLatitude}
+              setLongitude={setLongitude}
+              handleSubmit={handleSubmit}
+            />
+          )}
 
           {showDroneList && (
             <DroneDiscovery onDroneSelect={handleDroneSelect} />
