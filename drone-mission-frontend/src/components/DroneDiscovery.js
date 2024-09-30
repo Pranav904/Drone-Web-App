@@ -2,6 +2,8 @@
 import React, { useState } from "react";
 import axios from "axios";
 import "./DroneDiscovery.css"; // Importing the new CSS
+import LoadingButton from '@mui/lab/LoadingButton';
+import RadarIcon from '@mui/icons-material/Radar';
 
 const getNetworkIPs = async () => {
   // This is a placeholder. In a real implementation, you might get this from a backend API
@@ -58,13 +60,17 @@ const DroneDiscovery = ({ onDroneSelect }) => {
 
   return (
     <div className="p-4">
-      <button
-        onClick={scanNetwork}
-        disabled={isScanning}
-        className="bg-blue-500 text-white px-4 py-2 rounded disabled:bg-gray-400"
-      >
-        {isScanning ? "Scanning..." : "Scan for Drones"}
-      </button>
+      <LoadingButton
+          size="medium"
+          onClick={scanNetwork}
+          endIcon={<RadarIcon/>}
+          loading={isScanning}
+          loadingPosition="end"
+          variant="contained"
+          style={{color: "white"}}
+        >
+          Scan for Drones
+        </LoadingButton>
       {error && <p className="text-red-500 mt-2">{error}</p>}
 
       <ul className="drone-list mt-4">
