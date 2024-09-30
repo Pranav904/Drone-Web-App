@@ -2,6 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
 import RingsLoaderComponent from "./RingsLoaderComponent";
+import "./StatusAnimation.css";
 
 const StatusAnimation = ({ status, message }) => {
   if (status === "loading") {
@@ -22,8 +23,8 @@ const StatusAnimation = ({ status, message }) => {
           transition={{ duration: 0.5, exit: { duration: 0.5, delay: 2 } }}
         >
           <Icon className={colorClass} />
-          <p>{status === "success" ? "Success!" : "Error!"}</p>
-          <p>{message}</p>
+          <p className="msg">{status === "success" ? "Success!" : "Error!"}</p>
+          <p className="msg">{message}</p>
         </motion.div>
       </div>
     );
