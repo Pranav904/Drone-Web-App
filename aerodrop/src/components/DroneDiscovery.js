@@ -68,7 +68,7 @@ const DroneDiscovery = ({ onDroneSelect }) => {
           variant="contained"
           style={{color: "white"}}
         >
-          Scan for Drones
+          {isScanning ? "Scanning..." : "Scan for Drones"}
         </LoadingButton>
       {error && <p className="text-red-500 mt-2">{error}</p>}
 
