@@ -44,10 +44,17 @@ This format can be edited to define the drone's mission, including specific comm
 
 ## Technology Stack
 
+- **Frontend**: Next.js
+  - Used for building the user interface, including map integration for selecting drop coordinates.
+
 - **Backend**: Flask
-  - Handles API requests, including scanning the local network for drones and sending drop coordinates.
+  - Manages API requests and drone communication.
+
 - **Drone Control**: PyMavlink
-  - Communicates with drones to send commands and load mission waypoints.
+  - Sends commands and mission waypoints to drones using the MAVLink protocol.
+
+- **Mapping**: Google Maps API
+  - Provides the map interface for selecting and viewing drop coordinates.
 
 ## Usage
 
