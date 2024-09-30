@@ -14,7 +14,7 @@ const center = {
 };
 
 const mapOptions = {
-  mapTypeId: 'satellite',
+  mapTypeId: "satellite",
   mapTypeControl: true,
   zoomControl: true,
   streetViewControl: false,
@@ -23,9 +23,7 @@ const mapOptions = {
 const MissionMap = ({ markerPosition, onMapClick }) => {
   return (
     <div className="map-container">
-      <LoadScript
-        googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
-      >
+      <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}>
         <GoogleMap
           mapContainerStyle={mapContainerStyle}
           center={center}
