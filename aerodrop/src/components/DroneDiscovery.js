@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
-import "./DroneDiscovery.css"; // Importing the new CSS
-import LoadingButton from '@mui/lab/LoadingButton';
-import RadarIcon from '@mui/icons-material/Radar';
+import "./DroneDiscovery.css";
+import LoadingButton from "@mui/lab/LoadingButton";
+import RadarIcon from "@mui/icons-material/Radar";
 
 const getNetworkIPs = async () => {
   // This is a placeholder. In a real implementation, you might get this from a backend API
@@ -48,28 +48,26 @@ const DroneDiscovery = ({ onDroneSelect }) => {
 
   const handleDroneSelection = (drone) => {
     if (selectedDrone && selectedDrone.id === drone.id) {
-      // If the same drone is clicked, deselect it
       setSelectedDrone(null);
     } else {
-      // Otherwise, select the clicked drone
       setSelectedDrone(drone);
     }
-    onDroneSelect(drone); // Send the selected drone details to the parent component
+    onDroneSelect(drone);
   };
 
   return (
     <div className="p-4">
       <LoadingButton
-          size="medium"
-          onClick={scanNetwork}
-          endIcon={<RadarIcon/>}
-          loading={isScanning}
-          loadingPosition="end"
-          variant="contained"
-          style={{color: "white"}}
-        >
-          {isScanning ? "Scanning..." : "Scan for Drones"}
-        </LoadingButton>
+        size="medium"
+        onClick={scanNetwork}
+        endIcon={<RadarIcon />}
+        loading={isScanning}
+        loadingPosition="end"
+        variant="contained"
+        style={{ color: "white" }}
+      >
+        {isScanning ? "Scanning..." : "Scan for Drones"}
+      </LoadingButton>
       {error && <p className="text-red-500 mt-2">{error}</p>}
 
       <ul className="drone-list mt-4">

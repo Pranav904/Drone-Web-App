@@ -50,7 +50,6 @@
   display: block;
 }
 
-/* Styling for the radio buttons */
 input[type="radio"] {
   margin-right: 10px;
   transform: scale(1.3);

@@ -14,9 +14,8 @@ const MissionForm = () => {
   const [showForm, setShowForm] = useState(true);
   const [showDroneList, setDroneList] = useState(true);
   const [markerPosition, setMarkerPosition] = useState(null);
-  const [selectedDrone, setSelectedDrone] = useState({}); // Add state to track selected drone
+  const [selectedDrone, setSelectedDrone] = useState({});
 
-  // Capture selected drone from DroneDiscovery
   const handleDroneSelect = (drone) => {
     setSelectedDrone(drone);
   };
@@ -29,7 +28,7 @@ const MissionForm = () => {
     const payload = {
       latitude: parseFloat(latitude),
       longitude: parseFloat(longitude),
-      drone_id: selectedDrone.id, // Include the selected drone in the payload
+      drone_id: selectedDrone.id,
     };
 
     let destination = selectedDrone.ip;

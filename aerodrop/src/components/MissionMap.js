@@ -22,7 +22,9 @@ const mapOptions = {
 const MissionMap = ({ markerPosition, onMapClick }) => {
   return (
     <div className="map-container">
-      <LoadScript googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}>
+      <LoadScript
+        googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+      >
         <GoogleMap
           mapContainerStyle={mapContainerStyle}
           center={center}
