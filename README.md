@@ -94,18 +94,38 @@ This format can be edited to define the drone's mission, including specific comm
    ```bash
    npm install
    ```
-   
-3. **Launch the Web Server**:
+
+3. **Configure Google Maps API Key**:
+   Create a `.env.local` file in the `aerodrop` directory and add your Google Maps API key from GCP:
+   ```bash
+   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your-api-key-here
+   ```
+
+4. **Launch the Web Server**:
    Launch the Next.js Web Server
    ```bash
    npm run dev
    ```
    
-4. **Access the Web App**:
+5. **Access the Web App**:
    Once the server is running, you can access the web interface via your browser at:
    ```
    http://localhost:3000
    ```
+
+## Note !
+
+- **Google Maps API Key**: Make sure to create a `.env.local` file inside the `aerodrop` directory and include your Google Maps API key (`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`). This key is required for the map functionality to work correctly in the frontend.
+
+### Where to Add the `.env.local` File:
+- Go to the `aerodrop` directory.
+- Create a file named `.env.local`.
+- Inside the file, add the following line:
+  ```bash
+  NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your-api-key-here
+  ```
+
+This `.env.local` file will ensure that the Google Maps API key is available to the Next.js frontend.
 
 ## Mission Parameters Customization
 
