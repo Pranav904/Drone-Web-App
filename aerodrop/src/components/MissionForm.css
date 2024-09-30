@@ -2,7 +2,6 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  color: white;
 }
 
 h1 {
@@ -55,21 +54,6 @@ h1 {
   border: none;
   border-radius: 4px;
   cursor: pointer;
-}
-
-.mission-history {
-  color: white;
-  overflow-y: auto;
-  flex-grow: 1;
-}
-
-.mission-history ul {
-  list-style-type: none;
-  padding: 0;
-}
-
-.mission-history li {
-  margin-bottom: 5px;
 }
 
 .map-container {
