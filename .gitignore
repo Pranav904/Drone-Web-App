@@ -17,3 +17,5 @@ mav.parm
 
 # Ignore drone mission frontend build files
 /drone-mission-frontend/
+
+areodrop/.gitignore
