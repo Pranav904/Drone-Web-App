@@ -1,235 +1,228 @@
 from flask import Flask, request, jsonify
-import threading
 from pymavlink import mavutil
+import threading
 import time
 import math
 import logging
 from flask_cors import CORS
-
-app = Flask(__name__)
-CORS(app)
+import socket
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Global variables
-connection_string = 'tcp:127.0.0.1:5762'  # Replace with the appropriate connection string
-master = None
-connection_lock = threading.Lock()
-connection_established = threading.Event()
-drone_id = "DRONE_001"
+# Constants
+EARTH_RADIUS = 6371000  # in meters
 
-def initialize_connection():
-    global master
-    with connection_lock:
-        if master is not None:
-            try:
-                master.close()
-            except Exception as e:
-                logger.error(f"Error closing existing connection: {str(e)}")
-        master = mavutil.mavlink_connection(connection_string)
-    
-    try:
-        master.wait_heartbeat(timeout=10)
-        logger.info("Heartbeat received")
-        request_data_stream(master, mavutil.mavlink.MAV_DATA_STREAM_POSITION, rate=1)
-        logger.info("Requested position data stream")
-        connection_established.set()
-    except Exception as e:
-        logger.error(f"Failed to initialize connection: {str(e)}")
-        connection_established.clear()
+class DroneController:
+    def __init__(self, connection_string, drone_id):
+        self.connection_string = connection_string
+        self.drone_id = drone_id
+        self.connection_lock = threading.Lock()
+        self.connection_established = threading.Event()
+        self.master = None
 
-def get_master():
-    global master
-    if not connection_established.is_set():
-        initialize_connection()
-    return master
+    def initialize_connection(self):
+        """Initializes MAVLink connection."""
+        with self.connection_lock:
+            if self.master:
+                self.master.close()
+            self.master = mavutil.mavlink_connection(self.connection_string)
+        
+        try:
+            self.master.wait_heartbeat(timeout=10)
+            logger.info("Heartbeat received; connection established.")
+            self.request_data_stream(mavutil.mavlink.MAV_DATA_STREAM_POSITION, rate=1)
+            self.connection_established.set()
+        except Exception as e:
+            logger.error(f"Failed to initialize connection: {str(e)}")
+            self.connection_established.clear()
 
-def calculate_distance(lat1, lon1, lat2, lon2):
-    R = 6371000  # Earth's radius in meters
-    phi1, phi2 = math.radians(lat1), math.radians(lat2)
-    delta_phi = math.radians(lat2 - lat1)
-    delta_lambda = math.radians(lon2 - lon1)
-    a = math.sin(delta_phi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda/2)**2
-    return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    def get_master(self):
+        """Retrieves the MAVLink connection, initializing if necessary."""
+        if not self.connection_established.is_set():
+            self.initialize_connection()
+        return self.master
 
-def wait_for_ack(master, command, timeout=10):
-    start_time = time.time()
-    while time.time() - start_time < timeout:
-        message = master.recv_match(type='COMMAND_ACK', blocking=True, timeout=1)
-        if message and message.command == command:
-            if message.result == mavutil.mavlink.MAV_RESULT_ACCEPTED:
-                logger.info(f"Command {command} acknowledged")
-                return True
-            else:
-                logger.warning(f"Command {command} failed with result {message.result}")
-                return False
-    logger.error(f"Timeout waiting for acknowledgment of command {command}")
-    return False
+    def calculate_distance(self, lat1, lon1, lat2, lon2):
+        """Calculates the Haversine distance between two points on Earth."""
+        phi1, phi2 = map(math.radians, [lat1, lat2])
+        delta_phi = math.radians(lat2 - lat1)
+        delta_lambda = math.radians(lon2 - lon1)
+        a = math.sin(delta_phi / 2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2)**2
+        return 2 * EARTH_RADIUS * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
-def get_current_location(master, timeout=10):
-    start_time = time.time()
-    while time.time() - start_time < timeout:
-        message = master.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout=1)
-        if message:
-            lat = message.lat / 1e7
-            lon = message.lon / 1e7
-            alt = message.alt / 1000.0
-            logger.info(f"Current Location - Latitude: {lat}, Longitude: {lon}, Altitude: {alt} m")
-            return lat, lon, alt
-    raise TimeoutError("Failed to get current location")
+    def request_data_stream(self, stream_id, rate=1):
+        """Requests a data stream from the MAVLink connection."""
+        self.master.mav.request_data_stream_send(self.master.target_system, self.master.target_component, stream_id, rate, 1)
 
-def request_data_stream(master, stream_id, rate=1):
-    master.mav.request_data_stream_send(
-        master.target_system, master.target_component,
-        stream_id, rate, 1
-    )
+    def get_current_location(self, timeout=10):
+        """Retrieves the current location of the drone."""
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            message = self.master.recv_match(type='GLOBAL_POSITION_INT', blocking=True, timeout=1)
+            if message:
+                lat = message.lat / 1e7
+                lon = message.lon / 1e7
+                alt = message.alt / 1000.0
+                logger.info(f"Current Location - Latitude: {lat}, Longitude: {lon}, Altitude: {alt} m")
+                return lat, lon, alt
+        raise TimeoutError("Failed to get current location")
 
-def create_mission_item(seq, command, params, lat=0, lon=0, alt=0):
-    return mavutil.mavlink.MAVLink_mission_item_int_message(
-        master.target_system, master.target_component,
-        seq, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
-        command, 0, 1, *params,
-        int(lat * 1e7), int(lon * 1e7), alt,
-        mavutil.mavlink.MAV_MISSION_TYPE_MISSION
-    )
+    def execute_mission(self, drop_lat, drop_lon):
+        """Executes a predefined mission with given drop coordinates."""
+        try:
+            if not self.connection_established.is_set():
+                raise ConnectionError("No connection to the drone")
 
-def wait_for_mission_request(master, timeout=10):
-    start_time = time.time()
-    while time.time() - start_time < timeout:
-        message = master.recv_match(type=['MISSION_REQUEST', 'MISSION_REQUEST_INT'], blocking=True, timeout=1)
-        if message:
-            return message.seq
-    raise TimeoutError("Timeout waiting for mission request")
+            # Clear any existing mission
+            self.master.mav.mission_clear_all_send(self.master.target_system, self.master.target_component)
+            time.sleep(1)
 
-def execute_mission(drop_lat, drop_lon):
-    try:
-        master = get_master()
-        if not connection_established.is_set():
-            raise ConnectionError("No connection to the drone")
+            # Get the current location and check distance to the drop point
+            current_lat, current_lon, current_alt = self.get_current_location()
+            distance = self.calculate_distance(current_lat, current_lon, drop_lat, drop_lon)
+            if distance > 1000:
+                raise ValueError(f"Drop coordinates are {distance:.2f}m away, exceeding the 1000m limit.")
 
-        master.mav.mission_clear_all_send(master.target_system, master.target_component)
-        logger.info("Cleared existing mission")
-        time.sleep(1)
+            # Define mission items (simplified here)
+            mission_items = [
+                self.create_mission_item(0, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, current_lat, current_lon, current_alt),
+                self.create_mission_item(1, mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, alt=10),
+                self.create_mission_item(2, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, drop_lat, drop_lon, 10),
+                self.create_mission_item(3, mavutil.mavlink.MAV_CMD_NAV_LOITER_TIME, drop_lat, drop_lon, 1),
+                self.create_mission_item(4, mavutil.mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH)
+            ]
 
-        current_lat, current_lon, current_alt = get_current_location(master)
+            # Upload mission
+            self.upload_mission(mission_items)
+            # Arm and start mission
+            self.set_mode_and_arm()
+            self.start_mission()
+            return True, "Mission started successfully"
+        except Exception as e:
+            logger.error(f"Error during mission execution: {str(e)}")
+            return False, str(e)
 
-        distance = calculate_distance(current_lat, current_lon, drop_lat, drop_lon)
-        if distance > 1000:
-            raise ValueError(f"Drop coordinates are {distance:.2f}m away, which exceeds the 1000m limit.")
-
-        mission_items = [
-            create_mission_item(0, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, (0, 0, 0, 0), current_lat, current_lon, current_alt),
-            create_mission_item(1, mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, (15, 0, 0, 0), alt=10),
-            create_mission_item(2, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, (0, 0, 0, 0), drop_lat, drop_lon, 10),
-            create_mission_item(3, mavutil.mavlink.MAV_CMD_NAV_LOITER_TIME, (10, 0, 0, 0), drop_lat, drop_lon, 1),
-            create_mission_item(4, mavutil.mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH, (0, 0, 0, 0))
-        ]
-
-        master.mav.mission_count_send(master.target_system, master.target_component, len(mission_items), mavutil.mavlink.MAV_MISSION_TYPE_MISSION)
-        for i, item in enumerate(mission_items):
-            seq = wait_for_mission_request(master)
-            if seq != i:
-                raise ValueError(f"Unexpected mission request sequence. Expected {i}, got {seq}")
-            master.mav.send(item)
-            logger.info(f"Sent mission item {i}")
-
-        if not master.recv_match(type='MISSION_ACK', blocking=True, timeout=10):
-            raise TimeoutError("Did not receive MISSION_ACK")
-        logger.info("Mission uploaded successfully")
-
-        logger.info("Switching to GUIDED mode")
-        mode_id = master.mode_mapping()['GUIDED']
-        master.set_mode(mode_id)
-        if not wait_for_ack(master, mavutil.mavlink.MAV_CMD_DO_SET_MODE):
-            raise RuntimeError("Failed to receive acknowledgment for mode switch")
-
-        logger.info("Arming the drone")
-        master.arducopter_arm()
-        if not wait_for_ack(master, mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM):
-            raise RuntimeError("Failed to arm the drone")
-
-        logger.info("Starting the mission")
-        master.mav.command_long_send(
-            master.target_system, master.target_component,
-            mavutil.mavlink.MAV_CMD_MISSION_START,
-            0, 0, 0, 0, 0, 0, 0, 0
+    def create_mission_item(self, seq, command, lat=0, lon=0, alt=0, params=(0, 0, 0, 0)):
+        """Creates a MAVLink mission item."""
+        return mavutil.mavlink.MAVLink_mission_item_int_message(
+            self.master.target_system, self.master.target_component,
+            seq, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+            command, 0, 1, *params,
+            int(lat * 1e7), int(lon * 1e7), alt,
+            mavutil.mavlink.MAV_MISSION_TYPE_MISSION
         )
-        if not wait_for_ack(master, mavutil.mavlink.MAV_CMD_MISSION_START):
-            raise RuntimeError("Failed to start the mission")
 
-        logger.info("Mission started successfully")
-        return True, "Mission started successfully"
+    def upload_mission(self, mission_items):
+        """Uploads mission items to the drone."""
+        self.master.mav.mission_count_send(self.master.target_system, self.master.target_component, len(mission_items))
+        for i, item in enumerate(mission_items):
+            self.wait_for_mission_request(i)
+            self.master.mav.send(item)
 
-    except Exception as e:
-        logger.error(f"Error during mission execution: {str(e)}")
-        return False, str(e)
+        if not self.master.recv_match(type='MISSION_ACK', blocking=True, timeout=10):
+            raise TimeoutError("Did not receive MISSION_ACK")
 
-@app.route('/drone_info', methods=['GET'])
-def get_drone_info():
-    if not connection_established.is_set():
-        return jsonify({"error": "No connection to the drone. Please retry the connection and try again."}), 503
+    def set_mode_and_arm(self):
+        """Sets the drone mode to GUIDED and arms it."""
+        mode_id = self.master.mode_mapping()['GUIDED']
+        self.master.set_mode(mode_id)
+        self.wait_for_ack(mavutil.mavlink.MAV_CMD_DO_SET_MODE)
+        self.master.arducopter_arm()
+        self.wait_for_ack(mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM)
 
-    try:
-        master = get_master()
-        lat, lon, alt = get_current_location(master)
-        return jsonify({
-            "drone_id": drone_id
-        }), 200
-    except Exception as e:
-        logger.error(f"Error getting drone information: {str(e)}")
-        return jsonify({"error": f"Failed to get drone information: {str(e)}"}), 500
+    def start_mission(self):
+        """Starts the mission by sending the MISSION_START command."""
+        self.master.mav.command_long_send(
+            self.master.target_system, self.master.target_component,
+            mavutil.mavlink.MAV_CMD_MISSION_START, 0, 0, 0, 0, 0, 0, 0, 0
+        )
+        self.wait_for_ack(mavutil.mavlink.MAV_CMD_MISSION_START)
 
-@app.route('/drop_coordinates', methods=['POST'])
-def receive_coordinates():
-    if not connection_established.is_set():
-        return jsonify({"error": "No connection to the drone. Please retry the connection and try again."}), 503
+    def wait_for_ack(self, command, timeout=10):
+        """Waits for command acknowledgment."""
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            message = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=1)
+            if message and message.command == command:
+                return message.result == mavutil.mavlink.MAV_RESULT_ACCEPTED
+        raise TimeoutError(f"Timeout waiting for acknowledgment of command {command}")
 
-    data = request.json
-    if not data:
-        return jsonify({"error": "No data provided. Please include 'drone_id', 'latitude' and 'longitude' in the request body."}), 400
+    def wait_for_mission_request(self, seq, timeout=10):
+        """Waits for mission request."""
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            message = self.master.recv_match(type=['MISSION_REQUEST', 'MISSION_REQUEST_INT'], blocking=True, timeout=1)
+            if message and message.seq == seq:
+                return message.seq
+        raise TimeoutError("Timeout waiting for mission request")
 
-    received_drone_id = data.get('drone_id')
+class DroneAPI:
+    def __init__(self, connection_string, drone_id):
+        self.drone_controller = DroneController(connection_string, drone_id)
+        self.app = Flask(__name__)
+        CORS(self.app)
+        self.setup_routes()
 
-    if not received_drone_id:
-        return jsonify({"error": "No drone ID provided. Please include 'drone_id' in the request body."}), 400
+    def setup_routes(self):
+        @self.app.route('/drone_info', methods=['GET'])
+        def get_drone_info():
+            """Retrieves drone information."""
+            if not self.drone_controller.connection_established.is_set():
+                return jsonify({"error": "No connection to the drone. Retry connection."}), 503
 
-    if received_drone_id != drone_id:
-        return jsonify({"error": f"Invalid drone ID. Expected {drone_id}, but received {received_drone_id}."}), 400
+            try:
+                lat, lon, alt = self.drone_controller.get_current_location()
+                return jsonify({"drone_id": self.drone_controller.drone_id, "latitude": lat, "longitude": lon, "altitude": alt}), 200
+            except Exception as e:
+                logger.error(f"Error getting drone information: {str(e)}")
+                return jsonify({"error": f"Failed to get drone information: {str(e)}"}), 500
 
-    try:
-        drop_lat = float(data.get('latitude'))
-        drop_lon = float(data.get('longitude'))
-    except (TypeError, ValueError):
-        return jsonify({"error": "Invalid latitude or longitude format. Please provide valid floating-point numbers."}), 400
+        @self.app.route('/drop_coordinates', methods=['POST'])
+        def receive_coordinates():
+            """Receives drop coordinates and executes a mission."""
+            if not self.drone_controller.connection_established.is_set():
+                return jsonify({"error": "No connection to the drone. Retry connection."}), 503
 
-    if not (-90 <= drop_lat <= 90) or not (-180 <= drop_lon <= 180):
-        return jsonify({"error": "Latitude or longitude out of valid range. Latitude should be between -90 and 90, longitude between -180 and 180."}), 400
+            data = request.json
+            if not data or data.get('drone_id') != self.drone_controller.drone_id:
+                return jsonify({"error": f"Invalid drone ID. Expected {self.drone_controller.drone_id}. Got {data.get('drone_id')}"}), 400
 
-    success, message = execute_mission(drop_lat, drop_lon)
-    if success:
-        return jsonify({"status": "Mission started", "latitude": drop_lat, "longitude": drop_lon}), 200
-    else:
-        return jsonify({"error": f"Mission execution failed: {message}"}), 500
+            try:
+                drop_lat, drop_lon = float(data['latitude']), float(data['longitude'])
+                if not (-90 <= drop_lat <= 90) or not (-180 <= drop_lon <= 180):
+                    return jsonify({"error": "Invalid latitude/longitude range."}), 400
 
-@app.route('/connection_status', methods=['GET'])
-def connection_status():
-    return jsonify({"connected": connection_established.is_set()}), 200
+                success, message = self.drone_controller.execute_mission(drop_lat, drop_lon)
+                status = "Mission started" if success else f"Mission execution failed: {message}"
+                return jsonify({"status": status, "latitude": drop_lat, "longitude": drop_lon}), 200 if success else 500
+            except ValueError:
+                return jsonify({"error": "Invalid latitude or longitude format."}), 400
 
-@app.errorhandler(404)
-def not_found(error):
-    return jsonify({"error": "Endpoint not found. Please check the URL and try again."}), 404
+        @self.app.route('/connection_status', methods=['GET'])
+        def connection_status():
+            """Checks drone connection status."""
+            return jsonify({"connected": self.drone_controller.connection_established.is_set()}), 200
 
-@app.errorhandler(405)
-def method_not_allowed(error):
-    return jsonify({"error": "Method not allowed. Please check the allowed HTTP methods for this endpoint."}), 405
+    def find_available_port(self, start_port):
+        """Finds the next available port starting from the given port number."""
+        port = start_port
+        while True:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                if sock.connect_ex(('localhost', port)) != 0:  # Check if the port is available
+                    return port
+                port += 1
 
-@app.errorhandler(500)
-def internal_server_error(error):
-    logger.error(f"Internal server error: {str(error)}")
-    return jsonify({"error": "Internal server error occurred. Please try again later or contact support."}), 500
+    def run(self, debug=False, port=5000):
+        """Runs the Flask app, finding an available port if necessary."""
+        self.drone_controller.initialize_connection()
+        available_port = self.find_available_port(port)
+        logger.info(f"Starting Flask server on port: {available_port}")
+        self.app.run(debug=debug, port=available_port)
 
 if __name__ == '__main__':
-    initialize_connection()
-    app.run(debug=False, port=5000)
+    connection_string = 'tcp:127.0.0.1:5762'  # Update with actual connection string
+    drone_id = "DRONE_001"
+    api = DroneAPI(connection_string, drone_id)
+    api.run(debug=False)
