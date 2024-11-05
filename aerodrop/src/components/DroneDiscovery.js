@@ -4,10 +4,16 @@ import "./DroneDiscovery.css";
 import LoadingButton from "@mui/lab/LoadingButton";
 import RadarIcon from "@mui/icons-material/Radar";
 
-const getNetworkIPs = async () => {
-  // This is a placeholder. In a real implementation, you might get this from a backend API
-  return ["127.0.0.1:5000", "127.0.0.1:5001"];
+const getDrones = async () => {
+  try {
+    const response = await axios.get("/api/scan");
+    return response.data.activeDrones;
+  } catch (error) {
+    console.error("Error fetching IPs:", error);
+    return [];
+  }
 };
+
 
 const DroneDiscovery = ({ onDroneSelect }) => {
   const [drones, setDrones] = useState([]);
@@ -19,26 +25,8 @@ const DroneDiscovery = ({ onDroneSelect }) => {
     setIsScanning(true);
     setError(null);
     try {
-      const ipList = await getNetworkIPs();
-      const discoveredDrones = [];
-
-      for (const ip of ipList) {
-        try {
-          const response = await axios.get(`http://${ip}/drone_info`, {
-            timeout: 2000,
-          });
-          if (response.status === 200 && response.data.drone_id) {
-            discoveredDrones.push({
-              ip: ip,
-              id: response.data.drone_id,
-            });
-          }
-        } catch (error) {
-          // Ignore errors for IPs that don't respond or aren't drones
-        }
-      }
-
-      setDrones(discoveredDrones);
+      const droneList = await getDrones();
+      setDrones(droneList);
     } catch (error) {
       setError("Failed to scan network: " + error.message);
     } finally {
