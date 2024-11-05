@@ -16,7 +16,7 @@ export async function GET(req) {
         timeout: 2000,
       });
       if (response.status === 200 && response.data.drone_id) {
-        activeDrones.push({ ip, drone_id: response.data.drone_id });
+        activeDrones.push({ ip, id: response.data.drone_id });
       }
     } catch (error) {
       // Ignore errors (timeout, connection refused, etc.)
