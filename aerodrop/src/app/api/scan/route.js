@@ -1,9 +1,9 @@
 // /src/app/api/scan/route.js
 import axios from "axios";
 
-const networkRange = "127.0.0.1"; // Replace with your network range
+const networkRange = "192.168.62.247"; // Replace with your network range
 const portStartRange = 5000;
-const portEndRange = 5100;
+const portEndRange = 5050;
 const droneEndpoint = "/drone_info"; // Known endpoint on each drone
 
 export async function GET(req) {
