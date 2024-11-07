@@ -220,7 +220,7 @@ class DroneAPI:
         self.drone_controller.initialize_connection()
         available_port = self.find_available_port(port)
         logger.info(f"Starting Flask server on port: {available_port}")
-        self.app.run(debug=debug, port=available_port)
+        self.app.run(host="0.0.0.0", debug=debug, port=available_port)
 
 if __name__ == '__main__':
     # Set up argument parser
