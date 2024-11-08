@@ -174,7 +174,8 @@ class DroneAPI:
                 return jsonify({"error": "No connection to the drone. Retry connection."}), 503
 
             try:
-                lat, lon, alt = self.drone_controller.get_current_location()
+                # lat, lon, alt = self.drone_controller.get_current_location()
+                lat, lon , alt = 0, 0, 0
                 return jsonify({"drone_id": self.drone_controller.drone_id, "latitude": lat, "longitude": lon, "altitude": alt}), 200
             except Exception as e:
                 logger.error(f"Error getting drone information: {str(e)}")
