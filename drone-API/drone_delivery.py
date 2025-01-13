@@ -31,7 +31,7 @@ class DroneController:
             self.master = mavutil.mavlink_connection(self.connection_string)
         
         try:
-            self.master.wait_heartbeat(timeout=10)
+            self.master.wait_heartbeat()
             logger.info("Heartbeat received; connection established.")
             self.request_data_stream(mavutil.mavlink.MAV_DATA_STREAM_POSITION, rate=1)
             self.connection_established.set()
