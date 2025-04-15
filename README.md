@@ -1,33 +1,42 @@
-# Drone-Web-App
+# 🛸 Drone-Web-App
 
-This repository provides a web application to manage and control drones equipped with Raspberry Pi via a local network. It features the ability to scan for available drones, select drop coordinates on Google Maps, and customize mission parameters by editing waypoints. The backend uses Flask for handling API requests and PyMavlink to send commands and load mission waypoints to the drone.
+A full-stack web application to manage and control drones (equipped with Raspberry Pi) over a local network. Features include real-time drone discovery, mission waypoint customization, and drop coordinate selection via Google Maps.
 
-## Table of Contents
-- [Features](#Features)
-- [Assumptions](#assumptions)
-- [Current Mission Waypoints Format](#current-mission-waypoints-format)
-- [Technology Stack](#technology-stack)
-- [Usage](#usage)
-  - [Backend](#backend)
-  - [Frontend](#frontend)
-- [Mission Parameters Customization](#mission-parameters-customization)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
+---
 
+## 📌 Table of Contents
 
-## Features
+- [✨ Features](#-features)
+- [📦 Assumptions](#-assumptions)
+- [📄 Waypoints Format](#-waypoints-format)
+- [🛠 Tech Stack](#-tech-stack)
+- [🚀 Getting Started](#-getting-started)
+  - [🔧 Backend Setup](#-backend-setup)
+  - [🎨 Frontend Setup](#-frontend-setup)
+- [🗺 Mission Parameters](#-mission-parameters)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+- [📬 Contact](#-contact)
 
-- **Drone Discovery**: Scans the local network to find drones that are available and connected.
-- **Drop Coordinates Selection**: Users can pick the drop coordinates using a Google Maps component and send them to the drone.
-- **Waypoint Customization**: Users can customize the drone's mission parameters by editing waypoints manually.
-- **Good Error Handling**: The app is built with robust error-handling mechanisms to ensure smooth operation and provide meaningful feedback.
+---
 
-## Assumptions
+## ✨ Features
 
-- Each drone has a Raspberry Pi onboard, running a service that exposes a `/drop_coordinates` API endpoint. This endpoint is used to send the target coordinates to the drone.
-  
-## Current Mission Waypoints Format
+- **🔍 Drone Discovery**: Scan the local network to find available drones.
+- **📍 Drop Coordinates**: Select drop locations interactively on Google Maps.
+- **✏️ Waypoint Customization**: Edit mission waypoints directly via the UI.
+- **⚙️ Robust Error Handling**: Built-in error management and feedback system.
+
+---
+
+## 📦 Assumptions
+
+- Each drone runs a service on a Raspberry Pi that exposes a `/drop_coordinates` API endpoint.
+- Drones communicate using MAVLink protocol through PyMavlink.
+
+---
+
+## 📄 Waypoints Format
 
 The mission waypoints follow the `QGC WPL 110` format, which looks like this:
 
